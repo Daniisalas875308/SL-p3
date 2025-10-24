@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Busca tu videojuego</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #a3a3a3;
+        }
+
+        header {
+            background-color: #333;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 36px;
+        }
+
+        .page{
+            padding: 20px;
+            padding-left: 4%;
+            padding-right: 4%;
+        }
+
+        .container {
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #d1d1d1;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: left;
+        }
+
+        .container form {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .btn-container {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+
+        .btn-container button {
+            margin-left: 10px;
+            padding: 10px 20px;
+            background-color: #fff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        table th {
+            background-color: #333;
+            color: #fff;
+        }
+
+        table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        table tr:hover {
+            background-color: #ddd;
+        }
+
+        table th, table td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        table tbody {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+            z-index: 1;
+            overflow: auto;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 60%;
+            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+        }
+
+        .context-menu {
+            display: none;
+            position: absolute;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+            top: 100%; /* Posición debajo del botón */
+            left: 0; /* Alineado con el borde izquierdo del botón */
+        }
+
+        .context-menu ul {
+            list-style-type: none;
+            font-size: 12px;
+            margin: 0;
+            padding: 0;
+        }
+
+        .context-menu ul li {
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        .context-menu ul li:hover {
+            background-color: #f2f2f2;
+        }
+
+        .subrayado{
+            text-decoration: underline;
+        }
+
+        form {
+            display: block;
+            margin-bottom: 10px;
+        }
+        
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>BUSCA TU VIDEOJUEGO</h1>
+        <p>Número de registros: {{ data.numReg }}</p>
+    </header>
+    
+    <div class="page">
+        <div class="container" style="text-align: center;">
+            <h2 class="subrayado">BUSCAR PROGRAMA</h2>
+            <form action="/nombre" method="post" onsubmit="return validarFormularioNombre()">
+                <div class="input-group">
+                    <label for="nombre">Por nombre:</label>
+                    <input type="text" id="nombre" name="nombre">
+                    <button id="buscarNombre" type="submit">Buscar</button>
+                </div>
+            </form>
+            <form action="/cinta" method="post" onsubmit="return validarFormularioCinta()">
+                <div class="input-group">
+                    <label for="cinta">Por cinta:</label>
+                    <input type="text" id="cinta" name="cinta">
+                    <button id="buscarCinta" type="submit">Buscar</button>
+                </div>
+            </form>
+            {% if data.encontrado=="NO" %}
+                <p class="error">Programa/s no encontrado</p>
+            {% endif %}
+        </div>
+        <div class="container">
+            <h2 class="subrayado">INFORMACIÓN PROGRAMAS</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Numero</th>
+                        <th>Nombre</th>
+                        <th>Tipo</th>
+                        <th>Cinta</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in data.datos %}
+                        <tr>
+                            <td>{{ item.numero }}</td>
+                            <td>{{ item.nombre }}</td>
+                            <td>{{ item.tipo }}</td>
+                            <td>{{ item.cinta }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function validarFormularioNombre() {
+            if (document.getElementById("nombre").value.trim() === "") {
+                alert("El campo no puede estar vacío.");
+                return false; // Impide que el formulario se envíe
+            }
+            return true; // Permite el envío del formulario si todos los campos están completos
+        }
+
+        function validarFormularioCinta() {
+            if (document.getElementById("cinta").value.trim() === "") {
+                alert("El campo no puede estar vacío.");
+                return false; // Impide que el formulario se envíe
+            }
+            return true; // Permite el envío del formulario si todos los campos están completos
+        }
+    </script>
+</body>
+</html>
