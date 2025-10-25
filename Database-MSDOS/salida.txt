@@ -1,2 +1,0 @@
-
-C:\Users\danii\Documents\4\SisLeg\SL-p3\Database-MSDOS>DOSBox-0.74\DOSBox.exe Database\gwbasic.bat -noconsole 
