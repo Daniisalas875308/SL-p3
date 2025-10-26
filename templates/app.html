@@ -6,152 +6,117 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Busca tu videojuego</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #a3a3a3;
+        /* Fuente moderna */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+
+        :root{
+            --bg-1: #f4f7fb;
+            --bg-2: #e9eef6;
+            --card-bg: #ffffff;
+            --muted: #6b7280;
+            --primary: #2563eb; /* azul */
+            --primary-dark: #1e4fd1;
+            --accent: #0f1724;
+            --surface: #f8fafc;
         }
 
-        header {
-            background-color: #333;
-            color: #fff;
-            padding: 20px;
+        html,body{
+            height:100%;
+            margin:0;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+            background: linear-gradient(135deg,var(--bg-1),var(--bg-2));
+            color: #0f1724;
+            -webkit-font-smoothing:antialiased;
+        }
+
+        header{
+            background: linear-gradient(90deg,var(--accent),#18304a);
+            color: white;
+            padding: 28px 20px;
             text-align: center;
+            box-shadow: 0 2px 8px rgba(15,23,36,0.12);
         }
 
-        header h1 {
-            margin: 0;
-            font-size: 36px;
+        header h1{
+            margin:0;
+            font-size:28px;
+            letter-spacing:1px;
+            font-weight:600;
         }
+
+        header p{ margin:6px 0 0; color:var(--bg-1); font-size:14px }
 
         .page{
-            padding: 20px;
-            padding-left: 4%;
-            padding-right: 4%;
+            padding: 28px 4%;
+            max-width:1100px;
+            margin: 0 auto 40px;
         }
 
-        .container {
-            margin: 20px auto;
-            padding: 20px;
-            background-color: #d1d1d1;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        .container{
+            margin: 18px 0;
+            padding: 18px 20px;
+            background: var(--card-bg);
+            border-radius: 10px;
+            box-shadow: 0 6px 18px rgba(15,23,36,0.06);
             text-align: left;
         }
 
-        .container form {
-            display: block;
-            margin-bottom: 10px;
-        }
+        .container h2{ margin-top:0; font-size:18px; color:var(--accent) }
 
-        .btn-container {
-            text-align: right;
-            margin-bottom: 20px;
-        }
+        .subrayado{ text-decoration: underline; }
 
-        .btn-container button {
-            margin-left: 10px;
-            padding: 10px 20px;
-            background-color: #fff;
-            color: #fff;
-            border: none;
-            cursor: pointer;
+        /* Forms */
+        .input-group{ display:inline-flex; align-items:center; gap:8px; margin:8px 0 }
+        label{ font-size:14px; color:var(--muted) }
+        input[type="text"]{
+            padding:8px 10px;
+            border-radius:8px;
+            border:1px solid #e6e9ef;
+            min-width:220px;
+            outline:none;
+            transition:box-shadow .12s, border-color .12s;
         }
+        input[type="text"]:focus{ box-shadow:0 6px 18px rgba(37,99,235,0.12); border-color:var(--primary) }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
+        button{
+            background:var(--primary);
+            color:white;
+            border:none;
+            padding:8px 12px;
+            border-radius:8px;
+            cursor:pointer;
+            font-weight:600;
         }
+        button:hover{ background:var(--primary-dark) }
 
-        table th, table td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: left;
-        }
+        .btn-container{ text-align:right; margin-bottom:12px }
 
-        table th {
-            background-color: #333;
-            color: #fff;
-        }
+        /* Table: responsive card-like rows */
+        .table-wrapper{ overflow:auto; }
+        table{ width:100%; border-collapse:collapse; table-layout:fixed; min-width:600px }
+        thead th{ text-align:left; padding:12px; background:var(--accent); color:#fff; font-weight:600 }
+        tbody td{ padding:12px; border-bottom:1px solid #f1f5f9; vertical-align:middle; color:#0f1724 }
+        tbody tr:nth-child(even){ background:var(--surface) }
+        tbody tr:hover{ background:#eef3ff }
 
-        table tr:nth-child(even) {
-            background-color: #f2f2f2;
-        }
+        /* Keep text from overflowing but allow wrapping for readability */
+        table th, table td{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
 
-        table tr:hover {
-            background-color: #ddd;
-        }
+        /* Modal/context/menu basics preserved */
+        .modal{ display:none; position:fixed; inset:0; background-color:rgba(2,6,23,0.45); z-index:40; overflow:auto }
+        .modal-content{ background:#fff; margin:8% auto; padding:18px; border-radius:8px; width:clamp(300px,60%,900px); box-shadow:0 8px 30px rgba(2,6,23,0.12) }
+        .context-menu{ display:none; position:absolute; background:#fff; border-radius:6px; overflow:hidden; box-shadow:0 8px 24px rgba(2,6,23,0.12); z-index:50 }
+        .context-menu ul{ list-style:none; margin:0; padding:0 }
+        .context-menu li{ padding:10px 12px; font-size:13px }
+        .context-menu li:hover{ background:#f8fafc }
 
-        table th, table td {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+        .error{ color:#b91c1c; font-weight:600 }
 
-        table tbody {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.4);
-            z-index: 1;
-            overflow: auto;
-        }
-
-        .modal-content {
-            background-color: #fff;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 60%;
-            box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
-        }
-
-        .context-menu {
-            display: none;
-            position: absolute;
-            background-color: #fff;
-            border: 1px solid #ccc;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            z-index: 1;
-            top: 100%; /* Posición debajo del botón */
-            left: 0; /* Alineado con el borde izquierdo del botón */
-        }
-
-        .context-menu ul {
-            list-style-type: none;
-            font-size: 12px;
-            margin: 0;
-            padding: 0;
-        }
-
-        .context-menu ul li {
-            padding: 10px;
-            cursor: pointer;
-        }
-
-        .context-menu ul li:hover {
-            background-color: #f2f2f2;
-        }
-
-        .subrayado{
-            text-decoration: underline;
-        }
-
-        form {
-            display: block;
-            margin-bottom: 10px;
-        }
-        
-        .error {
-            color: red;
+        @media (max-width:700px){
+            header h1{ font-size:20px }
+            .input-group{ display:block }
+            input[type="text"]{ width:100% }
+            table{ min-width:unset }
         }
     </style>
 </head>
@@ -204,6 +169,21 @@
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+        <div class="container" style="text-align: center; margin-top: 24px;">
+            <form action="/salir" method="get">
+                <button type="submit" style="
+                    background:#b91c1c;
+                    padding:10px 16px;
+                    border-radius:8px;
+                    border:none;
+                    color:white;
+                    font-weight:600;
+                    cursor:pointer;
+                    transition:background 0.2s;">
+                    🔴 Salir de la aplicación
+                </button>
+            </form>
         </div>
     </div>
 

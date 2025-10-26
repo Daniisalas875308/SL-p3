@@ -5,10 +5,26 @@ import re
 from flask import Flask, render_template, request, redirect, session
 from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 from itertools import zip_longest  # Necesitamos esto para combinar las columnas
-
-
 from lib.window import Window
 from lib.keyboard import Keyboard
+
+def resource_path(*parts):
+    # Cuando está empaquetado con PyInstaller usa _MEIPASS; si no, usa la carpeta del script
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        base = sys._MEIPASS
+    else:
+        base = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base, *parts)
+
+def get_capture_dir():
+    """Detecta automáticamente la carpeta de capturas de DOSBox en AppData."""
+    base = os.environ.get("LOCALAPPDATA")  # C:\Users\<usuario>\AppData\Local
+    capture_dir = os.path.join(base, "DOSBox", "capturas")
+
+    # Crear si no existe
+    os.makedirs(capture_dir, exist_ok=True)
+    print(f"[INFO] Usando carpeta de capturas: {capture_dir}")
+    return capture_dir
 
 app = Flask(__name__)
 delayScreen = 0.8
@@ -20,14 +36,25 @@ database = {
     "datos": []
 }
 
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+# --- Tesseract embebido en el proyecto ---
+tesseract_dir = resource_path("Tesseract-OCR")
+tesseract_exe = os.path.join(tesseract_dir, "tesseract.exe")
+
+# Ruta a la carpeta tessdata dentro del bundle
+tessdata_path = os.path.join(tesseract_dir, "tessdata")
+
+pytesseract.pytesseract.tesseract_cmd = tesseract_exe
+
+# 🔧 Ajustamos la variable de entorno para que apunte al directorio tessdata correcto
+os.environ["TESSDATA_PREFIX"] = tessdata_path
+
+print(f"[INFO] Tesseract ejecutable: {tesseract_exe}")
+print(f"[INFO] TESSDATA_PREFIX: {tessdata_path}")
+
 SEPARADOR = " | "
 
-
-# Directorio base donde están tus ficheros
-base_dir = ".\\Database-MSDOS" 
-
-# Ruta al ejecutable de DOSBox
+# 🧩 Rutas seguras (sirven dentro y fuera del .exe)
+base_dir = resource_path("Database-MSDOS")
 dosbox_exe = os.path.join(base_dir, "DOSBox-0.74", "DOSBox.exe")
 
 # Directorio que DOSBox montará como C: (la carpeta "Database")
@@ -44,10 +71,12 @@ drive_cmd = "C:"
 
 # 3. Comando para ejecutar el .bat Y REDIRIGIR su salida
 #    (Esto se ejecuta DENTRO de DOS)
-run_cmd = "gwbasic.bat > SALIDA.TXT"
+run_cmd = "gwbasic.bat"
 
 # 4. Comando para salir de DOSBox al terminar
 exit_cmd = "EXIT"
+
+capture_dir = get_capture_dir()
 
 # Construimos la lista de comandos final para Popen
 command_list = [
@@ -59,64 +88,6 @@ command_list = [
     "-c", exit_cmd     # Cierra DOSBox
 ]
 
-def cambiar_ciclos():
-    teclado = Keyboard()
-    teclado.Seleccionar_todo()
-    teclado.Borrar()
-    teclado.Escribir_frase_normal("[sdl]\n\nfullscreen=false\nfulldouble=false\nfullresolution=original\nwindowresolution=original\noutput=surface\nautolock=true\nsensitivity=100\nwaitonerror=true\npriority=higher,normal\nmapperfile=mapper-0.74.map\nusescancodes=true\n\n")
-    teclado.Escribir_frase_normal("[dosbox]\n\nlanguage=\nmachine=svga_s3\ncaptures=capture\nmemsize=16\n\n")
-    teclado.Escribir_frase_normal("[render]\n\nframeskip=0\naspect=false\nscaler=normal2x\n\n")
-    teclado.Escribir_frase_normal("[cpu]\n\ncore=auto\ncputype=auto\ncycles=max\ncycleup=10\ncycledown=20\n\n")
-    teclado.Escribir_frase_normal("[mixer]\n\nnosound=false\nrate=44100\nblocksize=1024\nprebuffer=20\n\n")
-    teclado.Escribir_frase_normal("[midi]\n\nmpu401=intelligent\nmididevice=default\nmidiconfig=\n\n")
-    teclado.Escribir_frase_normal("[sblaster]\n\nsbtype=sb16\nsbbase=220\nirq=7\ndma=1\nhdma=5\nsbmixer=true\noplmode=auto\noplemu=default\noplrate=44100\n\n")
-    teclado.Escribir_frase_normal("[gus]\n\ngus=false\ngusrate=44100\ngusbase=240\ngusirq=5\ngusdma=3\nultradir=C:\\ULTRASND\n\n")
-    teclado.Escribir_frase_normal("[speaker]\n\npcspeaker=true\npcrate=44100\ntandy=auto\ntandyrate=44100\ndisney=true\n\n")
-    teclado.Escribir_frase_normal("[joystick]\n\njoysticktype=auto\ntimed=true\nautofire=false\nswap34=false\nbuttonwrap=false\n\n")
-    teclado.Escribir_frase_normal("[serial]\n\nserial1=dummy\nserial2=dummy\nserial3=disabled\nserial4=disabled\n\n")
-    teclado.Escribir_frase_normal("[dos]\n\nxms=true\nems=true\numb=true\nkeyboardlayout=auto\n\n")
-    teclado.Escribir_frase_normal("[ipx]\n\nipx=false\n\n")
-    teclado.Escribir_frase_normal("[autoexec]\n\n")
-    teclado.Guardar() 
-    time.sleep(1)
-    del teclado
-
-def modificarCiclosYRedireccion():
-    configuracion=subprocess.Popen("cd .\\Database-MSDOS\\DOSBox-0.74 && .\\\"DOSBox 0.74 Options.bat\"", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    while chequearVentana("dosbox-0.74.conf: Bloc de notas")==False: 0
-    config = Window("dosbox-0.74.conf: Bloc de notas")
-    num_linea = cambiar_ciclos()
-    configuracion.wait()
-    config.Cerrar_ventana()
-    del config
-
-def read_line(line, file="ventana.txt"):
-    line = line - 1
-    # Abre el archivo en modo lectura
-    with open(file, "r") as archivo:
-        lineas = archivo.readlines()  # Lee todas las líneas del archivo
-
-        if 0 <= line < len(lineas):
-            linea_deseada = lineas[line]
-            return linea_deseada.strip()  # strip() elimina los caracteres de nueva línea
-        else:
-            return 0
-
-def esperar_salida(file=archivo, timeout=60):
-    print(f"[LOG] Esperando a que {file} se genere...")
-    t_inicio = time.time()
-    while True:
-        if os.path.exists(file):
-            size = os.path.getsize(file)
-            if size > 0:
-                print(f"[LOG] Archivo {file} generado correctamente, tamaño: {size} bytes")
-                return True
-        if time.time() - t_inicio > timeout:
-            print(f"[ERROR] Timeout: {file} no se generó en {timeout} segundos")
-            return False
-        time.sleep(2)
-
-
 def chequearVentana():
     ventanas_abiertas = gw.getWindowsWithTitle("DOSBox")
     return len(ventanas_abiertas) > 0
@@ -125,6 +96,22 @@ def chequearVentana():
 def iniciar():
     global ventana, teclado, basededatos, db
 
+    # Forzar DOSBox a usar la carpeta correcta de capturas
+    capture_dir = get_capture_dir()
+
+    # Archivo de configuración temporal (opcional)
+    dosbox_conf_path = os.path.join(base_dir, "DOSBox-0.74", "dosbox.conf")
+
+    # Si existe, reemplaza la línea de capturas
+    if os.path.exists(dosbox_conf_path):
+        with open(dosbox_conf_path, "r", encoding="utf-8", errors="ignore") as f:
+            conf = f.read()
+        conf = re.sub(r"(?i)^captures=.*$", f"captures={capture_dir}", conf, flags=re.MULTILINE)
+        with open(dosbox_conf_path, "w", encoding="utf-8") as f:
+            f.write(conf)
+
+    os.makedirs(resource_path("capturas"), exist_ok=True)
+
     basededatos = subprocess.Popen(command_list, 
                                stdout=subprocess.DEVNULL, 
                                stderr=subprocess.DEVNULL)
@@ -132,7 +119,7 @@ def iniciar():
     while chequearVentana()==False:
         if intentos>5:
             print("Aqui")
-            terminar_aplicacion()
+            eliminar_capturas()
             sys.exit(0)
         time.sleep(5)
         intentos = intentos + 1
@@ -189,7 +176,11 @@ def lectura():
     leido = True
 
 def leer_capturas():
-    capture_dir = r"C:\Users\danii\AppData\Local\DOSBox\capture"
+    capture_dir = get_capture_dir()
+
+    # Crear la carpeta si no existe (evita errores)
+    os.makedirs(capture_dir, exist_ok=True)
+
     imagenes = sorted([
         os.path.join(capture_dir, f)
         for f in os.listdir(capture_dir)
@@ -283,7 +274,11 @@ def leer_capturas():
         print(f"\n✅ OCR completado. Resultado guardado en: {output_file}")
 
 def eliminar_capturas():
-    capture_dir = r"C:\Users\danii\AppData\Local\DOSBox\capture"
+    capture_dir = get_capture_dir()
+
+    # Crear la carpeta si no existe (evita errores)
+    os.makedirs(capture_dir, exist_ok=True)
+
     imagenes = [
         os.path.join(capture_dir, f)
         for f in os.listdir(capture_dir)
@@ -373,7 +368,6 @@ def inicio():
     lectura()
     terminar()
     leer_capturas()
-    eliminar_capturas()
     procesar()
     
 
@@ -428,18 +422,20 @@ def cinta_post():
             data["datos"].append({"numero": instancia["Numero"], "nombre": instancia["Nombre"], "tipo": instancia["Tipo"], "cinta": instancia["Cinta"]})
     return render_template("app.html", data=data)
 
-def terminar_aplicacion():
-    if leido==True:
-        archivo_a_eliminar = archivo
-        #if os.path.exists(archivo_a_eliminar):
-        #    os.remove(archivo_a_eliminar)
-        archivo_a_eliminar = "./Database-MSDOS/salida.txt"
-        if os.path.exists(archivo_a_eliminar):
-            os.remove(archivo_a_eliminar)
-
 def terminar_app(signum, frame):
-    terminar_aplicacion()
+    eliminar_capturas()
     sys.exit(0)
+
+@app.route('/salir', methods=['GET'])
+def salir():
+    """Cierra el servidor Flask y termina la app"""
+    func = request.environ.get('werkzeug.server.shutdown')
+    if func is None:
+        raise RuntimeError("No se puede cerrar el servidor.")
+    print("🛑 Cerrando aplicación por petición web...")
+    func()
+    os._exit(0)
+    return "Cerrando..."
 
 if __name__ == '__main__':
     inicio()

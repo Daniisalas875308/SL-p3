@@ -4,7 +4,7 @@ import pytesseract as pt
 import pyautogui
 import os, time
 from pywinauto import Application, findwindows
-# from pynput.mouse import Controller, Button
+from pynput.mouse import Controller, Button
 
 class Window:
 
