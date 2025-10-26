@@ -2,6 +2,7 @@ import multiprocessing, subprocess, signal, time, os, sys
 import pygetwindow as gw
 import pytesseract
 import re
+import getpass
 from flask import Flask, render_template, request, redirect, session
 from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 from itertools import zip_longest  # Necesitamos esto para combinar las columnas
@@ -16,15 +17,41 @@ def resource_path(*parts):
         base = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(base, *parts)
 
-def get_capture_dir():
-    """Detecta automáticamente la carpeta de capturas de DOSBox en AppData."""
-    base = os.environ.get("LOCALAPPDATA")  # C:\Users\<usuario>\AppData\Local
-    capture_dir = os.path.join(base, "DOSBox", "capturas")
+import getpass
 
-    # Crear si no existe
-    os.makedirs(capture_dir, exist_ok=True)
-    print(f"[INFO] Usando carpeta de capturas: {capture_dir}")
-    return capture_dir
+def get_capture_dir():
+    """
+    Devuelve la carpeta donde DOSBox guarda las capturas.
+    Intenta primero la carpeta personalizada del proyecto, y si no existen
+    imágenes allí, usa la ruta por defecto de DOSBox en AppData.
+    """
+    # 1️⃣ Carpeta local del proyecto (por si alguna vez se usa correctamente)
+    if getattr(sys, 'frozen', False):
+        base = os.path.dirname(sys.executable)
+    else:
+        base = os.path.dirname(os.path.abspath(__file__))
+
+    custom_dir = os.path.join(base, "capturas")
+
+    # 2️⃣ Carpeta por defecto de DOSBox en AppData
+    username = getpass.getuser()
+    appdata_dir = os.path.join(
+        os.environ.get("LOCALAPPDATA", f"C:\\Users\\{username}\\AppData\\Local"),
+        "DOSBox",
+        "capture"
+    )
+
+    # 3️⃣ Si existe la carpeta por defecto y contiene imágenes, usarla
+    if os.path.exists(appdata_dir):
+        imgs = [f for f in os.listdir(appdata_dir) if f.lower().endswith(".png")]
+        if imgs:
+            print(f"[INFO] Usando carpeta de capturas predeterminada: {appdata_dir}")
+            return appdata_dir
+
+    # 4️⃣ Si no, usar la carpeta local (creándola si es necesario)
+    os.makedirs(custom_dir, exist_ok=True)
+    print(f"[INFO] Usando carpeta local de capturas: {custom_dir}")
+    return custom_dir
 
 app = Flask(__name__)
 delayScreen = 0.8
